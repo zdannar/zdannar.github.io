@@ -1,0 +1,163 @@
+<!DOCTYPE HTML>
+
+<html lang="en-us">
+
+<head>
+	<meta charset="utf-8">
+	<title>Updating ESXi Vsphere&#39;s SSL Certificate - blog.deadhorse.io</title>
+	<meta name="author" content="map[]">
+
+	
+	
+	<meta name="description" content="">
+	
+
+	
+	<meta name="HandheldFriendly" content="True">
+	<meta name="MobileOptimized" content="320">
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+    
+	<link rel="canonical" href="http://blog.deadhorse.io/post/ESXi_ssl_cert/">
+	<link href="http://blog.deadhorse.io//favicon.png" rel="shortcut icon">
+	<link href="http://blog.deadhorse.io//css/screen.css" media="screen, projection" rel="stylesheet" type="text/css">
+	<link href="http://blog.deadhorse.io//css/font-awesome.min.css" media="screen, projection" rel="stylesheet" type="text/css">
+	
+	<link href='http://fonts.googleapis.com/css?family=Nunito:400,300,700' rel='stylesheet' type='text/css'>
+	<script src="//ajax.googleapis.com/ajax/libs/jquery/1.7.2/jquery.min.js"></script>
+	
+  
+
+</head>
+
+
+<body>
+	<div class="container">
+		<div class="left-col">
+			<div class="intrude-less">
+			<header id="header" class="inner"><div class="profilepic">
+	
+	
+	
+</div>
+
+<nav id="main-nav"><ul class="main">
+    <image src="/images/dh_skel2_ghost.png">
+    <li><a href="/">Blog</a></li>
+    <li><a href="https://www.linkedin.com/in/zack-dannar">About</a></li>
+    <li><a href="/post/">Archives</a></li>
+</ul>
+
+</nav>
+<nav id="sub-nav">
+	<div class="social">
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+    	
+    	
+	</div>
+</nav>
+</header>
+			</div>
+		</div>
+		<div class="mid-col">
+			
+			<div class="mid-col-container">
+				<div id="content" class="inner">
+					<div itemscope itemtype="http://schema.org/Blog">
+					<article class="post" itemscope itemtype="http://schema.org/BlogPosting">
+    <h1 class="title" itemprop="name">Updating ESXi Vsphere&#39;s SSL Certificate</h1>
+	<div class="entry-content" itemprop="articleBody"><p>[ OUTDATED ]</p>
+
+<p>I wanted to update my esxi hosts to not give the annoying ssl error when logging
+directly in via the vi client. I read the methods from shown in&hellip;</p>
+
+<pre><code>http://www.vmware.com/pdf/vsphere4/r40_u1/vsp_40_u1_esxi_server_config.pdf
+</code></pre>
+
+<p>I was interested in the PUT method, but it did not work out for me.  Also, there
+was a strong mention of being in “Maintenance Mode” on the ESXi host that is not
+an option for a production environment.  After toying with it for a bit, I found
+there is a much easier way to perform the action without having to enter
+maintenance mode and interrupt the VMs on the host.  Here are the details.  If
+you have techsupport mode(ssh) on your ESXi host, you can simply scp you certs
+to your ESXi host and restart the management agents.  Here is a crude script.</p>
+
+<pre><code>
+#!/bin/bash
+declare HOST=$1
+ssh root@$HOST &quot;mv /etc/vmware/ssl/rui.key /etc/vmware/ssl/rui.key_bak;
+                mv /etc/vmware/ssl/rui.crt /etc/vmware/ssl/rui.crt_bak&quot;
+scp wildcard.crt root@$HOST:/etc/vmware/ssl/rui.crt
+scp wildcard.key root@$HOST:/etc/vmware/ssl/rui.key
+ssh root@$HOST &quot;/sbin/services.sh restart&quot;
+If you are feeling frisky, you can change the name of the certs in /etc/vmware/hostd/config.xml.
+   &lt;!-- Remove the following node to disable SSL --&gt;
+   &lt;ssl&gt;
+      &lt;!-- The server private key file --&gt;
+      &lt;privateKey&gt;/etc/vmware/ssl/rui.key&lt;/privateKey&gt;
+
+      &lt;!-- The server side certificate file --&gt;
+      &lt;certificate&gt;/etc/vmware/ssl/rui.crt&lt;/certificate&gt;
+   &lt;/ssl&gt;
+
+</code></pre>
+
+<p>After changing out the certs, I performed a simple verification using:</p>
+
+<pre><code>     openssl s_client -host &lt;your host&gt; -port 443
+
+</code></pre>
+</div></article>
+					
+						<div class="share">
+	<div class="addthis_toolbox addthis_default_style ">
+	
+	
+	
+	
+	</div>
+	
+</div>
+
+					
+					
+					
+
+
+				    </div>
+				</div>
+			</div>
+			<footer id="footer" class="inner">Copyright &copy; 2016
+
+    blog.deadhorse.io
+
+<br>
+<br>Powered by:<br>
+<image id="hugologo" src="https://gohugo.io/img/hugo.png">
+<br>Hugo Them Design credit: <a href="http://shashankmehta.in/archive/2012/greyshade.html">Shashank Mehta</a>
+<br>
+<script src="http://blog.deadhorse.io//js/slash.js"></script>
+<script src="http://blog.deadhorse.io//js/jquery.fancybox.pack.js"></script>
+<script type="text/javascript">
+(function($){
+	$('.fancybox').fancybox();
+})(jQuery);
+</script>
+</footer>
+		</div>
+	</div>
+	
+</body>
+</html>

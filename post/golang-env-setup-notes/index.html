@@ -1,0 +1,192 @@
+<!DOCTYPE HTML>
+
+<html lang="en-us">
+
+<head>
+	<meta charset="utf-8">
+	<title>golang env setup notes - blog.deadhorse.io</title>
+	<meta name="author" content="map[]">
+
+	
+	
+	<meta name="description" content="">
+	
+
+	
+	<meta name="HandheldFriendly" content="True">
+	<meta name="MobileOptimized" content="320">
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+    
+	<link rel="canonical" href="http://blog.deadhorse.io/post/golang-env-setup-notes/">
+	<link href="http://blog.deadhorse.io//favicon.png" rel="shortcut icon">
+	<link href="http://blog.deadhorse.io//css/screen.css" media="screen, projection" rel="stylesheet" type="text/css">
+	<link href="http://blog.deadhorse.io//css/font-awesome.min.css" media="screen, projection" rel="stylesheet" type="text/css">
+	
+	<link href='http://fonts.googleapis.com/css?family=Nunito:400,300,700' rel='stylesheet' type='text/css'>
+	<script src="//ajax.googleapis.com/ajax/libs/jquery/1.7.2/jquery.min.js"></script>
+	
+  
+
+</head>
+
+
+<body>
+	<div class="container">
+		<div class="left-col">
+			<div class="intrude-less">
+			<header id="header" class="inner"><div class="profilepic">
+	
+	
+	
+</div>
+
+<nav id="main-nav"><ul class="main">
+    <image src="/images/dh_skel2_ghost.png">
+    <li><a href="/">Blog</a></li>
+    <li><a href="https://www.linkedin.com/in/zack-dannar">About</a></li>
+    <li><a href="/post/">Archives</a></li>
+</ul>
+
+</nav>
+<nav id="sub-nav">
+	<div class="social">
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+    	
+    	
+	</div>
+</nav>
+</header>
+			</div>
+		</div>
+		<div class="mid-col">
+			
+			<div class="mid-col-container">
+				<div id="content" class="inner">
+					<div itemscope itemtype="http://schema.org/Blog">
+					<article class="post" itemscope itemtype="http://schema.org/BlogPosting">
+    <h1 class="title" itemprop="name">golang env setup notes</h1>
+	<div class="entry-content" itemprop="articleBody"><p>[ OUTDATED ]</p>
+
+<p>I have been working on nice ways to setup a golang programming environment for
+a bit now.  I have come up with a system the works fairly well.  In my home
+directory I put a .golangrc file. I have used the same method to build in
+different locations. You simply have to change to the git repo of your choice
+and source the golangrc.</p>
+
+<pre><code>
+[ ~/.golangrc ]
+
+# Location of my go installation
+export GOROOT=$HOME/go
+
+#--------------------------------------------------------------------
+# Configures a place to include 3rd party Go libs and personal
+# developed libs.
+#
+# NOTE: `go get  will now put 3rd party libs in ~/go_include/src
+#--------------------------------------------------------------------
+
+if [ -e $HOME/go_include ]; then
+    GOPATH=$HOME/go_include:$GOROOT
+else
+    GOPATH=$GOROOT
+fi
+
+case $(uname -s) in
+    Linux)
+        GOOS=linux
+    ;;
+    FreeBSD)
+        GOOS=freebsd
+    ;;
+    Darwin)
+        GOOS=darwin
+    ;;
+    *)
+        echo &quot;!! ERROR : Unable to determine GOOS env variable!!&quot;
+    ;;
+esac
+
+case $(uname -m) in
+    amd64|x86_64)
+        GOARCH=amd64
+    ;;
+    x86_64|amd64)
+        declare SITE_LIST=$2; SHIFTY=2
+        GOARCH=linux
+    ;;
+    i686)
+        GOARCH=386
+    ;;
+    *)
+        echo &quot;!! ERROR : Unable to determine GOARCH env variable!!&quot;
+    ;;
+esac
+
+export GOARCH
+export GOOS
+export GOPATH
+export GOBIN=$GOROOT/bin
+export PATH=$GOBIN:$PATH
+
+# Used to pull in 3rd party C libs like sqlite for use with go-sqlite3
+export LIBRARY_PATH=&quot;$HOME/lib&quot;
+export LD_LIBRARY_PATH=&quot;$HOME/lib&quot;
+
+
+</code></pre>
+</div></article>
+					
+						<div class="share">
+	<div class="addthis_toolbox addthis_default_style ">
+	
+	
+	
+	
+	</div>
+	
+</div>
+
+					
+					
+					
+
+
+				    </div>
+				</div>
+			</div>
+			<footer id="footer" class="inner">Copyright &copy; 2016
+
+    blog.deadhorse.io
+
+<br>
+<br>Powered by:<br>
+<image id="hugologo" src="https://gohugo.io/img/hugo.png">
+<br>Hugo Them Design credit: <a href="http://shashankmehta.in/archive/2012/greyshade.html">Shashank Mehta</a>
+<br>
+<script src="http://blog.deadhorse.io//js/slash.js"></script>
+<script src="http://blog.deadhorse.io//js/jquery.fancybox.pack.js"></script>
+<script type="text/javascript">
+(function($){
+	$('.fancybox').fancybox();
+})(jQuery);
+</script>
+</footer>
+		</div>
+	</div>
+	
+</body>
+</html>

@@ -1,0 +1,471 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes" ?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+  <channel>
+      <title>Posts on blog.deadhorse.io </title>
+      <generator uri="https://gohugo.io">Hugo</generator>
+    <link>http://blog.deadhorse.io/post/</link>
+    <language>en-us</language>
+    
+    
+    <updated>Wed, 10 Aug 2016 16:27:29 MDT</updated>
+    
+    <item>
+      <title>launching in hugo</title>
+      <link>http://blog.deadhorse.io/post/launching-in-hugo/</link>
+      <pubDate>Wed, 10 Aug 2016 16:27:29 MDT</pubDate>
+      
+      <guid>http://blog.deadhorse.io/post/launching-in-hugo/</guid>
+      <description>&lt;p&gt;After reading about hugo and being a Go fan, I am re-launching my &amp;ldquo;blog&amp;rdquo; with
+hugo vs tumblr.  I was not fond of my previous domain so relevant tumblr
+content has been moved here.&lt;/p&gt;
+
+&lt;p&gt;Some notes&amp;hellip;&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;&amp;lt;\!--more--&amp;gt;               # Will help you break the summaries. Remove extra backslash.
+hugo new post/new_post.md  # Create a new post.
+Markdown : &amp;lt;https://sourceforge.net/p/hugo-generator/wiki/markdown_syntax/&amp;gt;
+&lt;/code&gt;&lt;/pre&gt;
+</description>
+    </item>
+    
+    <item>
+      <title>tmux notes</title>
+      <link>http://blog.deadhorse.io/post/tmux-notes/</link>
+      <pubDate>Fri, 07 Jun 2013 17:25:18 MDT</pubDate>
+      
+      <guid>http://blog.deadhorse.io/post/tmux-notes/</guid>
+      <description>&lt;p&gt;As I have been learning tmux for some time, occasionally I need a cheat sheet.
+Here is a summation until I can put something better together.&lt;/p&gt;
+
+&lt;p&gt;Sessions:&lt;/p&gt;
+
+&lt;p&gt;Sessions are instances of tmux that a user can connect to. A session contains
+multiple windows. When you call tmux without arguments, you receive a session
+with a single window. Windows then can be split and attached to a session.&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;tmux ls                                # Lists sessions available on a host
+tmux attach -t                         # Connect to a session
+
+^b $                                   # Rename session
+^b d                                   # Detach from current session
+^b s                                   # Select a different session interactive
+^b L                                   # Switch to previously attached session
+
+Mouse Modes:
+
+Configurations that allow your mouse to work with tmux buffers and such.
+set mode-mouse on
+tmux set-option mode-mouse on
+
+# Turns on mouse mode, allowing copying into tmux buffer
+Key Modes:
+
+I am a avid VI user, so there is only one option for me.
+tmux set-option -g mode-keys vi
+
+^b : set-keys vi
+
+Copy Mode:
+
+Like command mode in VI
+^b [                                   # Enter copy mode
+ENTER KEY                              # Put selection in buffer
+v, SPACE                               # Column selection mode
+SPACE                                  # Selection mode, vi key bindings for nav
+^b ]                                   # Paste buffer
+
+Windows:
+
+^b c                                   # Create new window
+^b w                                   # show windows and choose window.
+^b &amp;quot;                                   # Horizontal window split
+^b %                                   # Split window vertically
+^b arrow                               # Drive between windows
+^b+arrow                               # change window dimensions
+^b p                                   # Change to previous window
+^b n                                   # Next window
+^b ,                                   # rename current window
+
+&lt;/code&gt;&lt;/pre&gt;
+</description>
+    </item>
+    
+    <item>
+      <title>bonding notes</title>
+      <link>http://blog.deadhorse.io/post/bonding-notes/</link>
+      <pubDate>Fri, 29 Mar 2013 18:10:59 MDT</pubDate>
+      
+      <guid>http://blog.deadhorse.io/post/bonding-notes/</guid>
+      <description>&lt;p&gt;This is a little script that helps automate the creation of vlan tag offloading
+and bridge creation for setting up KVM machines. I have called this script
+during kickstarts of RHEL, and variant distros, to setup vlans and bridging on
+reboot for KVM hosts.&lt;/p&gt;
+
+&lt;p&gt;The script manipulates /etc/sysconfig/network-scripts to create virtual interfaces
+bonding the bridging.&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;
+#!/bin/bash
+
+#---------------------------------------#
+#        GLOBAL VARIABLES
+#---------------------------------------#
+declare NS_SCRIPTS=&amp;quot;/etc/sysconfig/network-scripts&amp;quot;
+#declare NS_SCRIPTS=&amp;quot;/tmp&amp;quot;
+
+#---------------------------------------#
+#        FUNCTIONS
+#---------------------------------------#
+function get_mac
+{
+    local DEV=$1
+    local MAC=`/sbin/ifconfig $DEV | egrep -i hwaddr | awk &#39;{print $NF}&#39;`
+    echo ${MAC:=NULL}
+}
+
+function mk_vifbr
+{
+    local PHYS_DEV=$1
+    local VLAN=$2
+    local INTF_IPADDR=$3
+    local INTF_NETMASK=$4
+    local INTF_DOMAIN=$5
+    local INTF_GW=$6
+
+    local VIF_DEV_FILE=&amp;quot;$NS_SCRIPTS/ifcfg-$PHYS_DEV.$VLAN&amp;quot;
+    local BR_DEV_FILE=&amp;quot;$NS_SCRIPTS/ifcfg-br$PHYS_DEV.$VLAN&amp;quot;
+
+
+    VIF_DEV_CONF=&amp;quot;
+DEVICE=$PHYS_DEV.$VLAN
+BOOTPROTO=none
+ONBOOT=yes
+VLAN=yes
+BRIDGE=br$PHYS_DEV.$VLAN
+&amp;quot;
+
+    if [ $INTF_IPADDR != NULL ]; then
+        BR_DEV_CONF=&amp;quot;
+DEVICE=br$PHYS_DEV.$VLAN
+TYPE=Bridge
+BOOTPROTO=static
+IPADDR=$INTF_IPADDR
+NETMASK=$INTF_NETMASK
+ONBOOT=yes
+SLAVE=$PHYS_DEV.$VLAN&amp;quot;
+
+        cp /etc/sysconfig/network /etc/sysconfig/network.orig
+        grep &amp;quot;^GATEWAY=&amp;quot; /etc/sysconfig/network &amp;gt; /dev/null || {
+            echo &amp;quot;WARNING : Gateway was missing, applying it&amp;quot;
+            echo &amp;quot;GATEWAY=&amp;quot; &amp;gt;&amp;gt; /etc/sysconfig/network
+        }
+        grep &amp;quot;^HOSTNAME=&amp;quot; /etc/sysconfig/network &amp;gt; /dev/null || {
+            echo &amp;quot;WARNING : hostname was missing, applying it&amp;quot;
+            echo &amp;quot;HOSTNAME=&amp;quot; &amp;gt;&amp;gt; /etc/sysconfig/network
+        }
+        sed -i -e &amp;quot;s/^GATEWAY=.*/GATEWAY=$INTF_GW/&amp;quot; \
+            -e &amp;quot;s/HOSTNAME=.*/HOSTNAME=$(hostname | awk -F&#39;.&#39; &#39;{print $1}&#39;).$INTF_DOMAIN/&amp;quot; \
+            /etc/sysconfig/network
+
+    else
+        BR_DEV_CONF=&amp;quot;
+DEVICE=br$PHYS_DEV.$VLAN
+TYPE=Bridge
+BOOTPROTO=none
+ONBOOT=yes
+SLAVE=$PHYS_DEV.$VLAN&amp;quot;
+    fi
+
+    echo &amp;quot;$VIF_DEV_CONF&amp;quot; &amp;gt; $VIF_DEV_FILE
+    echo &amp;quot;$BR_DEV_CONF&amp;quot; &amp;gt; $BR_DEV_FILE
+}
+
+function single_dev_conf
+{
+    local PHYS_DEV=$1
+    local PHYS_MAC=`get_mac $PHYS_DEV`
+
+    if [ $PHYS_MAC == &amp;quot;NULL&amp;quot; ]; then
+         echo &amp;quot;ERROR : UNABLE TO DETERMINE MAC ADDRESS OF DEV : $PHYS_DEV&amp;quot;
+         exit 1
+    fi
+
+    local PHYS_DEV_FILE=&amp;quot;$NS_SCRIPTS/ifcfg-$PHYS_DEV&amp;quot;
+
+    PHYS_DEV_CONF=&amp;quot;
+DEVICE=$PHYS_DEV
+BOOTPROTO=none
+ONBOOT=no
+TYPE=Ethernet
+HWADDR=$PHYS_MAC
+USERCTL=no&amp;quot;
+
+    echo &amp;quot;$PHYS_DEV_CONF&amp;quot; &amp;gt; $PHYS_DEV_FILE
+}
+
+
+function bond_dev_conf
+{
+    local PHYS_DEVS=$1
+    local BOND_NAME=$2
+
+    local BOND_DEV_FILE=&amp;quot;$NS_SCRIPTS/ifcfg-$BOND_NAME&amp;quot;
+
+    for PHYS_DEV in `echo $PHYS_DEVS | sed -e &#39;s/,/ /g&#39;`; do
+
+        PHYS_MAC=`get_mac $PHYS_DEV`
+
+        if [ $PHYS_MAC == &amp;quot;NULL&amp;quot; ]; then
+            echo &amp;quot;ERROR : UNABLE TO DETERMINE MAC ADDRESS OF DEV : $PHYS_DEV&amp;quot;
+            exit 1
+        fi
+
+        local PHYS_DEV_FILE=&amp;quot;$NS_SCRIPTS/ifcfg-$PHYS_DEV&amp;quot;
+
+        local PHYS_DEV_CONF=&amp;quot;DEVICE=$PHYS_DEV\nHWADDR=$PHYS_MAC\nBOOTPROTO=none\nONBOOT=yes\nMASTER=$BOND_NAME\nSLAVE=yes\nUSERCTL=no&amp;quot;
+        echo -e &amp;quot;$PHYS_DEV_CONF&amp;quot; &amp;gt; $PHYS_DEV_FILE
+    done
+
+    local BOND_DEV_CONF=&amp;quot;DEVICE=${BOND_NAME}\nBOOTPROTO=none\nONBOOT=yes\nBONDING_OPTS=\&amp;quot;mode=2 miimon=50 xmit_hash_policy=layer3+4\&amp;quot;\nUSERCTL=no&amp;quot;
+    echo -e $BOND_DEV_CONF &amp;gt; $BOND_DEV_FILE
+}
+
+#---------------------------------------#
+#        MAIN PROGRAM DRIVER
+#---------------------------------------#
+
+source /usr/local/qasa/lib/libbash.sh
+declare BASHLIB_USAGE_STMT=&amp;quot;
+    [ USAGE STATEMENT ]
+    Script: `basename $0`
+    Summary: Aids in verifying DNS and reverse DNS
+    Syntax:
+        $0
+
+    Options:
+      -d|--single-interface                A single interface, not bonded
+      -b|--bond-interfaces            Comma separated list of interfaces to bond and put vlans on.
+      -v|--vlans                          Setup multiple vlans, seperate by &#39;,&#39;
+      -n|--bond-name                      The name of the bond device.  Default is bond0.
+
+    Static Net Options:
+      --static-network 0.0.0.0:255.255.255.255   IP:Netmask
+      --domain int.nowhere.lan                   Domain name for static network
+      --gw 0.0.0.1                               Default Gateway
+
+      -p|--pxe                                   Push files to /mnt/sysimage during pxe boot when not chrooted
+      -h|--help                                  This help message.
+&amp;quot;
+
+
+# Tricky getopt stuff. Note: Do not add a --test or -T flag
+declare -rx SCRIPT=${0##*/}
+declare GOPTRESULT=`getopt --name &amp;quot;$SCRIPT&amp;quot; --options &amp;quot;-h,-p,-v:,-d:,-b:,-n:&amp;quot; \
+                    --longoptions &amp;quot;single-interface:,
+                                   bond-interfaces:,
+                                   bond-name:,
+                                   vlans:,
+                                   static-network:,
+                                   domain:,
+                                   gw:,
+                                   pxe,
+                                   help&amp;quot;`
+
+declare SHIFTY=0
+while [ $# -gt 0 ]; do
+    LOOPY=$1
+    test ${LOOPY:0:1} != &#39;-&#39; &amp;amp;&amp;amp; break
+    case $LOOPY in
+        #---------------------------#
+        # Options with a single arg
+        #---------------------------#
+        -d|--single-interface) declare SING_DEV=$2;   SHIFTY=2 ;;
+        -b|--bond-interfaces)  declare BOND_DEVS=$2;  SHIFTY=2 ;;
+        -n|--bond-name)        declare BOND_NAME=$2;  SHIFTY=2 ;;
+
+        --static-network) declare INTF_IPADDR=`echo $2 | awk -F: &#39;{print $1}&#39;`;
+                          declare INTF_NETMASK=`echo $2| awk -F: &#39;{print $2}&#39;`; SHIFTY=2 ;;
+        --domain)         declare INTF_DOMAIN=$2; SHIFTY=2 ;;
+        --gw)             declare INTF_GW=$2;     SHIFTY=2 ;;
+
+
+        -p|--pxe) NS_SCRIPTS=&amp;quot;/mnt/sysimage${NS_SCRIPTS}&amp;quot;;  SHIFTY=1 ;;
+        -v|--vlans) declare VLANS=$2;  SHIFTY=2 ;;
+
+        #---------------------------#
+        # Flags, No args
+        #---------------------------#
+        -h|--help) usage 0 ;;
+        *) usage 1 &amp;quot;Undefined option&amp;quot;;;
+    esac
+    shift $SHIFTY
+done
+
+
+if [ ${BOND_DEVS:=NULL} != &amp;quot;NULL&amp;quot; ]; then
+    bond_dev_conf $BOND_DEVS ${BOND_NAME:=bond0}
+    VLAN_DEV=$BOND_NAME
+else
+    single_dev_conf $SING_DEV
+    VLAN_DEV=$SING_DEV
+fi
+
+# Verify that only as single vlan was sent with this command.
+echo &amp;quot;$VLANS&amp;quot; | grep &#39;,&#39; &amp;amp;&amp;gt;/dev/null &amp;amp;&amp;amp; {
+    if [[ ${INTF_IPADDR:=NULL} != NULL &amp;amp;&amp;amp;
+          ${INTF_DOMAIN:=NULL} != NULL &amp;amp;&amp;amp;
+          ${INTF_GW:=NULL} != NULL        ]]; then
+          echo &amp;quot;When specifying --static-network, --domain, or --gw, you may only specify one VLAN in --vlans&amp;quot;
+          echo &amp;quot;Quiting&amp;quot;
+          exit 1
+      fi
+}
+
+# Check to make sure all of the static interface switches were populated
+if [ ${INTF_IPADDR:=NULL} != NULL -o ${INTF_DOMAIN:=NULL} != NULL -o ${INTF_GW:=NULL} != NULL ]; then
+    echo &amp;quot;${INTF_IPADDR}:${INTF_DOMAIN}:${INTF_GW}:$INTF_NETMASK&amp;quot; | egrep &amp;quot;NULL&amp;quot; &amp;amp;&amp;amp; {
+        usage 1 &amp;quot;--static-network, --domain, and --gw are all required to be present when setting an interface&amp;quot;
+    }
+fi
+
+
+
+for VLAN in `echo $VLANS | sed -e &#39;s/,/ /g&#39;`; do
+    mk_vifbr $VLAN_DEV $VLAN $INTF_IPADDR $INTF_NETMASK $INTF_DOMAIN $INTF_GW
+done
+
+&lt;/code&gt;&lt;/pre&gt;
+</description>
+    </item>
+    
+    <item>
+      <title>golang env setup notes</title>
+      <link>http://blog.deadhorse.io/post/golang-env-setup-notes/</link>
+      <pubDate>Thu, 07 Feb 2013 18:17:58 -0600</pubDate>
+      
+      <guid>http://blog.deadhorse.io/post/golang-env-setup-notes/</guid>
+      <description>&lt;p&gt;[ OUTDATED ]&lt;/p&gt;
+
+&lt;p&gt;I have been working on nice ways to setup a golang programming environment for
+a bit now.  I have come up with a system the works fairly well.  In my home
+directory I put a .golangrc file. I have used the same method to build in
+different locations. You simply have to change to the git repo of your choice
+and source the golangrc.&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;
+[ ~/.golangrc ]
+
+# Location of my go installation
+export GOROOT=$HOME/go
+
+#--------------------------------------------------------------------
+# Configures a place to include 3rd party Go libs and personal
+# developed libs.
+#
+# NOTE: `go get  will now put 3rd party libs in ~/go_include/src
+#--------------------------------------------------------------------
+
+if [ -e $HOME/go_include ]; then
+    GOPATH=$HOME/go_include:$GOROOT
+else
+    GOPATH=$GOROOT
+fi
+
+case $(uname -s) in
+    Linux)
+        GOOS=linux
+    ;;
+    FreeBSD)
+        GOOS=freebsd
+    ;;
+    Darwin)
+        GOOS=darwin
+    ;;
+    *)
+        echo &amp;quot;!! ERROR : Unable to determine GOOS env variable!!&amp;quot;
+    ;;
+esac
+
+case $(uname -m) in
+    amd64|x86_64)
+        GOARCH=amd64
+    ;;
+    x86_64|amd64)
+        declare SITE_LIST=$2; SHIFTY=2
+        GOARCH=linux
+    ;;
+    i686)
+        GOARCH=386
+    ;;
+    *)
+        echo &amp;quot;!! ERROR : Unable to determine GOARCH env variable!!&amp;quot;
+    ;;
+esac
+
+export GOARCH
+export GOOS
+export GOPATH
+export GOBIN=$GOROOT/bin
+export PATH=$GOBIN:$PATH
+
+# Used to pull in 3rd party C libs like sqlite for use with go-sqlite3
+export LIBRARY_PATH=&amp;quot;$HOME/lib&amp;quot;
+export LD_LIBRARY_PATH=&amp;quot;$HOME/lib&amp;quot;
+
+
+&lt;/code&gt;&lt;/pre&gt;
+</description>
+    </item>
+    
+    <item>
+      <title>Updating ESXi Vsphere&#39;s SSL Certificate</title>
+      <link>http://blog.deadhorse.io/post/ESXi_ssl_cert/</link>
+      <pubDate>Thu, 09 Aug 2012 13:15:24 MDT</pubDate>
+      
+      <guid>http://blog.deadhorse.io/post/ESXi_ssl_cert/</guid>
+      <description>&lt;p&gt;[ OUTDATED ]&lt;/p&gt;
+
+&lt;p&gt;I wanted to update my esxi hosts to not give the annoying ssl error when logging
+directly in via the vi client. I read the methods from shown in&amp;hellip;&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;http://www.vmware.com/pdf/vsphere4/r40_u1/vsp_40_u1_esxi_server_config.pdf
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;I was interested in the PUT method, but it did not work out for me.  Also, there
+was a strong mention of being in “Maintenance Mode” on the ESXi host that is not
+an option for a production environment.  After toying with it for a bit, I found
+there is a much easier way to perform the action without having to enter
+maintenance mode and interrupt the VMs on the host.  Here are the details.  If
+you have techsupport mode(ssh) on your ESXi host, you can simply scp you certs
+to your ESXi host and restart the management agents.  Here is a crude script.&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;
+#!/bin/bash
+declare HOST=$1
+ssh root@$HOST &amp;quot;mv /etc/vmware/ssl/rui.key /etc/vmware/ssl/rui.key_bak;
+                mv /etc/vmware/ssl/rui.crt /etc/vmware/ssl/rui.crt_bak&amp;quot;
+scp wildcard.crt root@$HOST:/etc/vmware/ssl/rui.crt
+scp wildcard.key root@$HOST:/etc/vmware/ssl/rui.key
+ssh root@$HOST &amp;quot;/sbin/services.sh restart&amp;quot;
+If you are feeling frisky, you can change the name of the certs in /etc/vmware/hostd/config.xml.
+   &amp;lt;!-- Remove the following node to disable SSL --&amp;gt;
+   &amp;lt;ssl&amp;gt;
+      &amp;lt;!-- The server private key file --&amp;gt;
+      &amp;lt;privateKey&amp;gt;/etc/vmware/ssl/rui.key&amp;lt;/privateKey&amp;gt;
+
+      &amp;lt;!-- The server side certificate file --&amp;gt;
+      &amp;lt;certificate&amp;gt;/etc/vmware/ssl/rui.crt&amp;lt;/certificate&amp;gt;
+   &amp;lt;/ssl&amp;gt;
+
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;After changing out the certs, I performed a simple verification using:&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;     openssl s_client -host &amp;lt;your host&amp;gt; -port 443
+
+&lt;/code&gt;&lt;/pre&gt;
+</description>
+    </item>
+    
+  </channel>
+</rss>

@@ -1,0 +1,361 @@
+<!DOCTYPE HTML>
+
+<html lang="en-us">
+
+<head>
+	<meta charset="utf-8">
+	<title>bonding notes - blog.deadhorse.io</title>
+	<meta name="author" content="map[]">
+
+	
+	
+	<meta name="description" content="">
+	
+
+	
+	<meta name="HandheldFriendly" content="True">
+	<meta name="MobileOptimized" content="320">
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+    
+	<link rel="canonical" href="http://blog.deadhorse.io/post/bonding-notes/">
+	<link href="http://blog.deadhorse.io//favicon.png" rel="shortcut icon">
+	<link href="http://blog.deadhorse.io//css/screen.css" media="screen, projection" rel="stylesheet" type="text/css">
+	<link href="http://blog.deadhorse.io//css/font-awesome.min.css" media="screen, projection" rel="stylesheet" type="text/css">
+	
+	<link href='http://fonts.googleapis.com/css?family=Nunito:400,300,700' rel='stylesheet' type='text/css'>
+	<script src="//ajax.googleapis.com/ajax/libs/jquery/1.7.2/jquery.min.js"></script>
+	
+  
+
+</head>
+
+
+<body>
+	<div class="container">
+		<div class="left-col">
+			<div class="intrude-less">
+			<header id="header" class="inner"><div class="profilepic">
+	
+	
+	
+</div>
+
+<nav id="main-nav"><ul class="main">
+    <image src="/images/dh_skel2_ghost.png">
+    <li><a href="/">Blog</a></li>
+    <li><a href="https://www.linkedin.com/in/zack-dannar">About</a></li>
+    <li><a href="/post/">Archives</a></li>
+</ul>
+
+</nav>
+<nav id="sub-nav">
+	<div class="social">
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+    	
+    	
+	</div>
+</nav>
+</header>
+			</div>
+		</div>
+		<div class="mid-col">
+			
+			<div class="mid-col-container">
+				<div id="content" class="inner">
+					<div itemscope itemtype="http://schema.org/Blog">
+					<article class="post" itemscope itemtype="http://schema.org/BlogPosting">
+    <h1 class="title" itemprop="name">bonding notes</h1>
+	<div class="entry-content" itemprop="articleBody"><p>This is a little script that helps automate the creation of vlan tag offloading
+and bridge creation for setting up KVM machines. I have called this script
+during kickstarts of RHEL, and variant distros, to setup vlans and bridging on
+reboot for KVM hosts.</p>
+
+<p>The script manipulates /etc/sysconfig/network-scripts to create virtual interfaces
+bonding the bridging.</p>
+
+<pre><code>
+#!/bin/bash
+
+#---------------------------------------#
+#        GLOBAL VARIABLES
+#---------------------------------------#
+declare NS_SCRIPTS=&quot;/etc/sysconfig/network-scripts&quot;
+#declare NS_SCRIPTS=&quot;/tmp&quot;
+
+#---------------------------------------#
+#        FUNCTIONS
+#---------------------------------------#
+function get_mac
+{
+    local DEV=$1
+    local MAC=`/sbin/ifconfig $DEV | egrep -i hwaddr | awk '{print $NF}'`
+    echo ${MAC:=NULL}
+}
+
+function mk_vifbr
+{
+    local PHYS_DEV=$1
+    local VLAN=$2
+    local INTF_IPADDR=$3
+    local INTF_NETMASK=$4
+    local INTF_DOMAIN=$5
+    local INTF_GW=$6
+
+    local VIF_DEV_FILE=&quot;$NS_SCRIPTS/ifcfg-$PHYS_DEV.$VLAN&quot;
+    local BR_DEV_FILE=&quot;$NS_SCRIPTS/ifcfg-br$PHYS_DEV.$VLAN&quot;
+
+
+    VIF_DEV_CONF=&quot;
+DEVICE=$PHYS_DEV.$VLAN
+BOOTPROTO=none
+ONBOOT=yes
+VLAN=yes
+BRIDGE=br$PHYS_DEV.$VLAN
+&quot;
+
+    if [ $INTF_IPADDR != NULL ]; then
+        BR_DEV_CONF=&quot;
+DEVICE=br$PHYS_DEV.$VLAN
+TYPE=Bridge
+BOOTPROTO=static
+IPADDR=$INTF_IPADDR
+NETMASK=$INTF_NETMASK
+ONBOOT=yes
+SLAVE=$PHYS_DEV.$VLAN&quot;
+
+        cp /etc/sysconfig/network /etc/sysconfig/network.orig
+        grep &quot;^GATEWAY=&quot; /etc/sysconfig/network &gt; /dev/null || {
+            echo &quot;WARNING : Gateway was missing, applying it&quot;
+            echo &quot;GATEWAY=&quot; &gt;&gt; /etc/sysconfig/network
+        }
+        grep &quot;^HOSTNAME=&quot; /etc/sysconfig/network &gt; /dev/null || {
+            echo &quot;WARNING : hostname was missing, applying it&quot;
+            echo &quot;HOSTNAME=&quot; &gt;&gt; /etc/sysconfig/network
+        }
+        sed -i -e &quot;s/^GATEWAY=.*/GATEWAY=$INTF_GW/&quot; \
+            -e &quot;s/HOSTNAME=.*/HOSTNAME=$(hostname | awk -F'.' '{print $1}').$INTF_DOMAIN/&quot; \
+            /etc/sysconfig/network
+
+    else
+        BR_DEV_CONF=&quot;
+DEVICE=br$PHYS_DEV.$VLAN
+TYPE=Bridge
+BOOTPROTO=none
+ONBOOT=yes
+SLAVE=$PHYS_DEV.$VLAN&quot;
+    fi
+
+    echo &quot;$VIF_DEV_CONF&quot; &gt; $VIF_DEV_FILE
+    echo &quot;$BR_DEV_CONF&quot; &gt; $BR_DEV_FILE
+}
+
+function single_dev_conf
+{
+    local PHYS_DEV=$1
+    local PHYS_MAC=`get_mac $PHYS_DEV`
+
+    if [ $PHYS_MAC == &quot;NULL&quot; ]; then
+         echo &quot;ERROR : UNABLE TO DETERMINE MAC ADDRESS OF DEV : $PHYS_DEV&quot;
+         exit 1
+    fi
+
+    local PHYS_DEV_FILE=&quot;$NS_SCRIPTS/ifcfg-$PHYS_DEV&quot;
+
+    PHYS_DEV_CONF=&quot;
+DEVICE=$PHYS_DEV
+BOOTPROTO=none
+ONBOOT=no
+TYPE=Ethernet
+HWADDR=$PHYS_MAC
+USERCTL=no&quot;
+
+    echo &quot;$PHYS_DEV_CONF&quot; &gt; $PHYS_DEV_FILE
+}
+
+
+function bond_dev_conf
+{
+    local PHYS_DEVS=$1
+    local BOND_NAME=$2
+
+    local BOND_DEV_FILE=&quot;$NS_SCRIPTS/ifcfg-$BOND_NAME&quot;
+
+    for PHYS_DEV in `echo $PHYS_DEVS | sed -e 's/,/ /g'`; do
+
+        PHYS_MAC=`get_mac $PHYS_DEV`
+
+        if [ $PHYS_MAC == &quot;NULL&quot; ]; then
+            echo &quot;ERROR : UNABLE TO DETERMINE MAC ADDRESS OF DEV : $PHYS_DEV&quot;
+            exit 1
+        fi
+
+        local PHYS_DEV_FILE=&quot;$NS_SCRIPTS/ifcfg-$PHYS_DEV&quot;
+
+        local PHYS_DEV_CONF=&quot;DEVICE=$PHYS_DEV\nHWADDR=$PHYS_MAC\nBOOTPROTO=none\nONBOOT=yes\nMASTER=$BOND_NAME\nSLAVE=yes\nUSERCTL=no&quot;
+        echo -e &quot;$PHYS_DEV_CONF&quot; &gt; $PHYS_DEV_FILE
+    done
+
+    local BOND_DEV_CONF=&quot;DEVICE=${BOND_NAME}\nBOOTPROTO=none\nONBOOT=yes\nBONDING_OPTS=\&quot;mode=2 miimon=50 xmit_hash_policy=layer3+4\&quot;\nUSERCTL=no&quot;
+    echo -e $BOND_DEV_CONF &gt; $BOND_DEV_FILE
+}
+
+#---------------------------------------#
+#        MAIN PROGRAM DRIVER
+#---------------------------------------#
+
+source /usr/local/qasa/lib/libbash.sh
+declare BASHLIB_USAGE_STMT=&quot;
+    [ USAGE STATEMENT ]
+    Script: `basename $0`
+    Summary: Aids in verifying DNS and reverse DNS
+    Syntax:
+        $0
+
+    Options:
+      -d|--single-interface                A single interface, not bonded
+      -b|--bond-interfaces            Comma separated list of interfaces to bond and put vlans on.
+      -v|--vlans                          Setup multiple vlans, seperate by ','
+      -n|--bond-name                      The name of the bond device.  Default is bond0.
+
+    Static Net Options:
+      --static-network 0.0.0.0:255.255.255.255   IP:Netmask
+      --domain int.nowhere.lan                   Domain name for static network
+      --gw 0.0.0.1                               Default Gateway
+
+      -p|--pxe                                   Push files to /mnt/sysimage during pxe boot when not chrooted
+      -h|--help                                  This help message.
+&quot;
+
+
+# Tricky getopt stuff. Note: Do not add a --test or -T flag
+declare -rx SCRIPT=${0##*/}
+declare GOPTRESULT=`getopt --name &quot;$SCRIPT&quot; --options &quot;-h,-p,-v:,-d:,-b:,-n:&quot; \
+                    --longoptions &quot;single-interface:,
+                                   bond-interfaces:,
+                                   bond-name:,
+                                   vlans:,
+                                   static-network:,
+                                   domain:,
+                                   gw:,
+                                   pxe,
+                                   help&quot;`
+
+declare SHIFTY=0
+while [ $# -gt 0 ]; do
+    LOOPY=$1
+    test ${LOOPY:0:1} != '-' &amp;&amp; break
+    case $LOOPY in
+        #---------------------------#
+        # Options with a single arg
+        #---------------------------#
+        -d|--single-interface) declare SING_DEV=$2;   SHIFTY=2 ;;
+        -b|--bond-interfaces)  declare BOND_DEVS=$2;  SHIFTY=2 ;;
+        -n|--bond-name)        declare BOND_NAME=$2;  SHIFTY=2 ;;
+
+        --static-network) declare INTF_IPADDR=`echo $2 | awk -F: '{print $1}'`;
+                          declare INTF_NETMASK=`echo $2| awk -F: '{print $2}'`; SHIFTY=2 ;;
+        --domain)         declare INTF_DOMAIN=$2; SHIFTY=2 ;;
+        --gw)             declare INTF_GW=$2;     SHIFTY=2 ;;
+
+
+        -p|--pxe) NS_SCRIPTS=&quot;/mnt/sysimage${NS_SCRIPTS}&quot;;  SHIFTY=1 ;;
+        -v|--vlans) declare VLANS=$2;  SHIFTY=2 ;;
+
+        #---------------------------#
+        # Flags, No args
+        #---------------------------#
+        -h|--help) usage 0 ;;
+        *) usage 1 &quot;Undefined option&quot;;;
+    esac
+    shift $SHIFTY
+done
+
+
+if [ ${BOND_DEVS:=NULL} != &quot;NULL&quot; ]; then
+    bond_dev_conf $BOND_DEVS ${BOND_NAME:=bond0}
+    VLAN_DEV=$BOND_NAME
+else
+    single_dev_conf $SING_DEV
+    VLAN_DEV=$SING_DEV
+fi
+
+# Verify that only as single vlan was sent with this command.
+echo &quot;$VLANS&quot; | grep ',' &amp;&gt;/dev/null &amp;&amp; {
+    if [[ ${INTF_IPADDR:=NULL} != NULL &amp;&amp;
+          ${INTF_DOMAIN:=NULL} != NULL &amp;&amp;
+          ${INTF_GW:=NULL} != NULL        ]]; then
+          echo &quot;When specifying --static-network, --domain, or --gw, you may only specify one VLAN in --vlans&quot;
+          echo &quot;Quiting&quot;
+          exit 1
+      fi
+}
+
+# Check to make sure all of the static interface switches were populated
+if [ ${INTF_IPADDR:=NULL} != NULL -o ${INTF_DOMAIN:=NULL} != NULL -o ${INTF_GW:=NULL} != NULL ]; then
+    echo &quot;${INTF_IPADDR}:${INTF_DOMAIN}:${INTF_GW}:$INTF_NETMASK&quot; | egrep &quot;NULL&quot; &amp;&amp; {
+        usage 1 &quot;--static-network, --domain, and --gw are all required to be present when setting an interface&quot;
+    }
+fi
+
+
+
+for VLAN in `echo $VLANS | sed -e 's/,/ /g'`; do
+    mk_vifbr $VLAN_DEV $VLAN $INTF_IPADDR $INTF_NETMASK $INTF_DOMAIN $INTF_GW
+done
+
+</code></pre>
+</div></article>
+					
+						<div class="share">
+	<div class="addthis_toolbox addthis_default_style ">
+	
+	
+	
+	
+	</div>
+	
+</div>
+
+					
+					
+					
+
+
+				    </div>
+				</div>
+			</div>
+			<footer id="footer" class="inner">Copyright &copy; 2016
+
+    blog.deadhorse.io
+
+<br>
+<br>Powered by:<br>
+<image id="hugologo" src="https://gohugo.io/img/hugo.png">
+<br>Hugo Them Design credit: <a href="http://shashankmehta.in/archive/2012/greyshade.html">Shashank Mehta</a>
+<br>
+<script src="http://blog.deadhorse.io//js/slash.js"></script>
+<script src="http://blog.deadhorse.io//js/jquery.fancybox.pack.js"></script>
+<script type="text/javascript">
+(function($){
+	$('.fancybox').fancybox();
+})(jQuery);
+</script>
+</footer>
+		</div>
+	</div>
+	
+</body>
+</html>
