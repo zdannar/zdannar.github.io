@@ -3,7 +3,7 @@
   <channel>
       <title>Posts on blog.deadhorse.io </title>
       <generator uri="https://gohugo.io">Hugo</generator>
-    <link>https://blog.deadhorse.io/post/</link>
+    <link>https://zdannar.github.io/post/</link>
     <language>en-us</language>
     
     
@@ -11,10 +11,10 @@
     
     <item>
       <title>launching in hugo</title>
-      <link>https://blog.deadhorse.io/post/launching-in-hugo/</link>
+      <link>https://zdannar.github.io/post/launching-in-hugo/</link>
       <pubDate>Wed, 10 Aug 2016 16:27:29 MDT</pubDate>
       
-      <guid>https://blog.deadhorse.io/post/launching-in-hugo/</guid>
+      <guid>https://zdannar.github.io/post/launching-in-hugo/</guid>
       <description>&lt;p&gt;After reading about hugo and being a Go fan, I am re-launching my &amp;ldquo;blog&amp;rdquo; with
 hugo vs tumblr.  I was not fond of my previous domain so relevant tumblr
 content has been moved here.&lt;/p&gt;
@@ -30,10 +30,10 @@ Markdown : &amp;lt;https://sourceforge.net/p/hugo-generator/wiki/markdown_syntax
     
     <item>
       <title>tmux notes</title>
-      <link>https://blog.deadhorse.io/post/tmux-notes/</link>
+      <link>https://zdannar.github.io/post/tmux-notes/</link>
       <pubDate>Fri, 07 Jun 2013 17:25:18 MDT</pubDate>
       
-      <guid>https://blog.deadhorse.io/post/tmux-notes/</guid>
+      <guid>https://zdannar.github.io/post/tmux-notes/</guid>
       <description>&lt;p&gt;As I have been learning tmux for some time, occasionally I need a cheat sheet.
 Here is a summation until I can put something better together.&lt;/p&gt;
 
@@ -92,10 +92,10 @@ Windows:
     
     <item>
       <title>bonding notes</title>
-      <link>https://blog.deadhorse.io/post/bonding-notes/</link>
+      <link>https://zdannar.github.io/post/bonding-notes/</link>
       <pubDate>Fri, 29 Mar 2013 18:10:59 MDT</pubDate>
       
-      <guid>https://blog.deadhorse.io/post/bonding-notes/</guid>
+      <guid>https://zdannar.github.io/post/bonding-notes/</guid>
       <description>&lt;p&gt;This is a little script that helps automate the creation of vlan tag offloading
 and bridge creation for setting up KVM machines. I have called this script
 during kickstarts of RHEL, and variant distros, to setup vlans and bridging on
@@ -340,10 +340,10 @@ done
     
     <item>
       <title>golang env setup notes</title>
-      <link>https://blog.deadhorse.io/post/golang-env-setup-notes/</link>
+      <link>https://zdannar.github.io/post/golang-env-setup-notes/</link>
       <pubDate>Thu, 07 Feb 2013 18:17:58 -0600</pubDate>
       
-      <guid>https://blog.deadhorse.io/post/golang-env-setup-notes/</guid>
+      <guid>https://zdannar.github.io/post/golang-env-setup-notes/</guid>
       <description>&lt;p&gt;[ OUTDATED ]&lt;/p&gt;
 
 &lt;p&gt;I have been working on nice ways to setup a golang programming environment for
@@ -419,10 +419,10 @@ export LD_LIBRARY_PATH=&amp;quot;$HOME/lib&amp;quot;
     
     <item>
       <title>Updating ESXi Vsphere&#39;s SSL Certificate</title>
-      <link>https://blog.deadhorse.io/post/ESXi_ssl_cert/</link>
+      <link>https://zdannar.github.io/post/ESXi_ssl_cert/</link>
       <pubDate>Thu, 09 Aug 2012 13:15:24 MDT</pubDate>
       
-      <guid>https://blog.deadhorse.io/post/ESXi_ssl_cert/</guid>
+      <guid>https://zdannar.github.io/post/ESXi_ssl_cert/</guid>
       <description>&lt;p&gt;[ OUTDATED ]&lt;/p&gt;
 
 &lt;p&gt;I wanted to update my esxi hosts to not give the annoying ssl error when logging
